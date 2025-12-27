@@ -105,7 +105,7 @@ void Drone::ComputeNeighborPosition(int sender_id, Vector3d claimed_gps, const v
     Vector3d calculated_pos = m_my_ekf_bank[sender_id].GetPosition();
     double error = (calculated_pos - claimed_gps).norm();
     
-    if (error > 5.0) m_security_alarm[sender_id] = true;
+    if (error > 10.0) m_security_alarm[sender_id] = true;
     else m_security_alarm[sender_id] = false;
 }
 

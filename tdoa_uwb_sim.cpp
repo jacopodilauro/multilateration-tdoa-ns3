@@ -21,7 +21,7 @@ using namespace Eigen;
 
 const int NUM_DRONES = 6;        
 const double SLOT_DURATION = 0.005;
-const double SIM_TIME = 600.0;    
+const double SIM_TIME = 300.0;    
 
 // ID del drone che usiamo come orologio di riferimento (Master)
 const int MASTER_ANCHOR_ID = 1;
@@ -180,6 +180,13 @@ int main(int argc, char* argv[]) {
             for(auto& d : swarm) d->UpdatePosition(t);
         });
     }
+    
+    Simulator::Schedule(Seconds(200.0), [swarm]()
+	{
+    // Attiva la modalità malevola sul drone 0 (Target)
+    swarm[0]->SetMalicious(true); 
+    std::cout << ">>> ATTACCO ATTIVATO: Il Drone 0 inizia lo spoofing GPS a t=200s <<<" << std::endl;
+	});
 
     ofstream csv("tdma_security_log.csv");
     if(!csv.is_open()) return 1;

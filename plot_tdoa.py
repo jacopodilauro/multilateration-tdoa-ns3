@@ -4,9 +4,93 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import sys
 
+# Impostazioni stile per pubblicazioni (font più leggibili)
+plt.rcParams.update({'font.size': 12, 'figure.autolayout': True})
+
+def calculate_metrics(df_target):
+    """Calcola metriche aggregate per tabelle LaTeX/Paper"""
+    rmse = np.sqrt((df_target['estimation_error'] ** 2).mean())
+    max_err = df_target['estimation_error'].max()
+    mean_err = df_target['estimation_error'].mean()
+    
+    # Rilevamento falsi positivi/negativi richiede ground truth logica, 
+    # qui calcoliamo la % di tempo in allarme
+    total_samples = len(df_target)
+    alarm_samples = df_target['alarm'].sum()
+    alarm_rate = (alarm_samples / total_samples) * 100 if total_samples > 0 else 0
+    
+    return mean_err, rmse, max_err, alarm_rate
+
+def plot_error_analysis(df_target, target_id, observer_ids):
+    """Genera grafici 2D per analisi quantitativa"""
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    fig.canvas.manager.set_window_title(f'4. Analisi Errori & Sicurezza Target {target_id}')
+    
+    colors = plt.cm.tab10(np.linspace(0, 1, len(observer_ids)))
+
+    # --- SUBPLOT 1: ERRORE DI STIMA (Performance) ---
+    for i, obs_id in enumerate(observer_ids):
+        data = df_target[df_target['observer_id'] == obs_id]
+        if data.empty: continue
+        
+        # Plot Errore
+        ax1.plot(data['time'], data['estimation_error'], 
+                 label=f'Obs {obs_id}', color=colors[i], linewidth=1.5, alpha=0.8)
+
+    ax1.set_ylabel('Errore Posizione [m]')
+    ax1.set_title('Accuratezza Localizzazione (Ground Truth vs EKF)', fontsize=14)
+    ax1.grid(True, linestyle='--', alpha=0.6)
+    ax1.legend(loc='upper right', fontsize='small', ncol=2)
+
+    # --- SUBPLOT 2: DISCREPANZA & ALLARMI (Sicurezza) ---
+    for i, obs_id in enumerate(observer_ids):
+        data = df_target[df_target['observer_id'] == obs_id]
+        if data.empty: continue
+        
+        # Linea della Discrepanza (Residuo)
+        ax2.plot(data['time'], data['discrepancy'], 
+                 color=colors[i], linewidth=1.5, alpha=0.8, label=f'Residuo Obs {obs_id}')
+        
+        # --- EVIDENZIAZIONE ALLARME ---
+        # Trova gli intervalli dove l'allarme è attivo
+        alarm_active = data[data['alarm'] == 1]
+        if not alarm_active.empty:
+            # Usiamo fill_between o bar per evidenziare le zone di allarme
+            # Trucco: plotto barre verticali rosse con alpha basso dove c'è allarme
+            # Per evitare sovrapposizioni pesanti, lo facciamo solo per il primo o cumulativo?
+            # Qui lo facciamo per ogni osservatore leggermente shiftato o unito
+            ax2.scatter(alarm_active['time'], [0]*len(alarm_active), 
+                        color='red', marker='|', s=100, alpha=0.5, label='_nolegend_')
+
+    # Soglia di allarme (hardcoded a 5.0 come nel C++)
+    ax2.axhline(y=5.0, color='r', linestyle='--', linewidth=2, label='Soglia Allarme (5m)')
+    
+    # Evidenzia zone di attacco (sfondo rosso) se l'allarme è attivo per la maggioranza
+    # Calcolo un "voto di maggioranza" per lo sfondo
+    times = df_target['time'].unique()
+    consensus_alarm = []
+    for t in times:
+        active_alarms = df_target[df_target['time'] == t]['alarm'].sum()
+        if active_alarms >= len(observer_ids) / 2: # Maggioranza
+            consensus_alarm.append(t)
+    
+    if consensus_alarm:
+        # Disegna bande rosse verticali
+        for t in consensus_alarm:
+            ax2.axvspan(t - 0.05, t + 0.05, color='red', alpha=0.05)
+        # Etichetta solo una volta
+        ax2.text(consensus_alarm[0], ax2.get_ylim()[1]*0.9, " ALARM ACTIVE", color='red', fontweight='bold')
+
+    ax2.set_ylabel('Discrepanza (Claim vs Stima) [m]')
+    ax2.set_xlabel('Tempo Simulazione [s]')
+    ax2.set_title(r'Rilevamento Anomalie (Residuo > Soglia)', fontsize=14)
+    ax2.grid(True, linestyle='--', alpha=0.6)
+    
+    plt.tight_layout()
+
 def main():
     filename = 'tdma_security_log.csv'
-    print(f"--- Visualizzatore Multi-Drone Avanzato (Comparativo) ---")
+    print(f"--- Generatore Grafici per Paper (TDoA UWB) ---")
     
     try:
         df = pd.read_csv(filename)
@@ -15,120 +99,64 @@ def main():
         return
 
     available_ids = sorted(df['sender_id'].unique())
-    print(f"ID Trovati: {available_ids}")
-
-    target_id = 0 # Default
+    
+    # Selezione Target
+    target_id = 0 
     if len(sys.argv) > 1:
-        try:
-            target_id = int(sys.argv[1])
-        except ValueError: pass
-    else:
-        try:
-            user_input = input(f"Inserisci ID target per analisi dettaglio (Default 0): ")
-            if user_input.strip(): target_id = int(user_input)
-        except ValueError: pass
-
+        target_id = int(sys.argv[1])
+    
     df_target = df[df['sender_id'] == target_id]
-
     if df_target.empty:
-        print("Nessun dato trovato per questo target.")
+        print("Nessun dato per il target.")
         return
 
-    fig_global = plt.figure(figsize=(10, 8))
-    fig_global.canvas.manager.set_window_title('1. Visione Globale Sciame')
-    ax_global = fig_global.add_subplot(111, projection='3d')
-    ax_global.set_title("Traiettorie Reali (Ground Truth)", fontsize=15)
-
-    colors = plt.cm.jet(np.linspace(0, 1, len(available_ids)))
-
-    for i, drone_id in enumerate(available_ids):
-        traj = df[df['sender_id'] == drone_id].drop_duplicates(subset=['time'])
-        if traj.empty: continue
-        c = colors[i]
-        ax_global.plot(traj['true_x'], traj['true_y'], traj['true_z'], color=c, label=f'D{drone_id}')
-        start = traj.iloc[0]; end = traj.iloc[-1]
-        ax_global.scatter(start['true_x'], start['true_y'], start['true_z'], color=c, marker='o', facecolors='none')
-        ax_global.scatter(end['true_x'], end['true_y'], end['true_z'], color=c, marker='s')
-        ax_global.text(end['true_x'], end['true_y'], end['true_z'], f"D{drone_id}", color='black')
-
-    ax_global.legend(); ax_global.set_xlabel('X'); ax_global.set_ylabel('Y'); ax_global.set_zlabel('Z')
+    observer_ids = sorted(df_target['observer_id'].unique())
     
-    all_x = df['true_x']; all_y = df['true_y']; all_z = df['true_z']
-    mid_x = (all_x.max()+all_x.min())/2; mid_y = (all_y.max()+all_y.min())/2; mid_z = (all_z.max()+all_z.min())/2
-    max_range = max(all_x.max()-all_x.min(), all_y.max()-all_y.min(), all_z.max()-all_z.min()) / 2
-    ax_global.set_xlim(mid_x-max_range, mid_x+max_range)
-    ax_global.set_ylim(mid_y-max_range, mid_y+max_range)
-    ax_global.set_zlim(mid_z-max_range, mid_z+max_range)
+    # 1. Calcolo Statistiche
+    mean_e, rmse, max_e, alarm_perc = calculate_metrics(df_target)
+    print(f"\n--- STATISTICHE TARGET {target_id} (per LaTeX) ---")
+    print(f"Mean Error: {mean_e:.4f} m")
+    print(f"RMSE:       {rmse:.4f} m")
+    print(f"Max Error:  {max_e:.4f} m")
+    print(f"Alarm Active Time: {alarm_perc:.2f}%")
+    print("--------------------------------------------------\n")
 
-    observer_ids = sorted(df['observer_id'].unique())
-    num_obs = len(observer_ids)
-    
-    if num_obs > 0:
-        cols = 3; rows = (num_obs + cols - 1) // cols
-        fig_detail = plt.figure(figsize=(18, 5 * rows))
-        fig_detail.canvas.manager.set_window_title(f'2. Dettaglio Target {target_id}')
-        fig_detail.suptitle(f"Analisi Singola: Cosa vede ogni drone del Target {target_id}?", fontsize=16)
+    # 2. Grafico Errori & Allarmi (NUOVO)
+    plot_error_analysis(df_target, target_id, observer_ids)
 
-        for i, obs_id in enumerate(observer_ids):
-            ax = fig_detail.add_subplot(rows, cols, i + 1, projection='3d')
-            data = df_target[df_target['observer_id'] == obs_id]
-            
-            if data.empty:
-                ax.text2D(0.5, 0.5, "Nessun dato (Self)", transform=ax.transAxes, ha="center")
-                continue
-
-            ax.plot(data['claim_x'], data['claim_y'], data['claim_z'], color='red', linestyle='--', alpha=0.5, label='Claim')
-            ax.plot(data['est_x'], data['est_y'], data['est_z'], color='blue', linewidth=2, label='Stima')
-            ax.plot(data['true_x'], data['true_y'], data['true_z'], color='green', alpha=0.3, label='Vero')
-            
-            step = max(1, len(data) // 10)
-            for idx in range(0, len(data), step):
-                row = data.iloc[idx]
-                ax.plot([row['est_x'], row['claim_x']], [row['est_y'], row['claim_y']], [row['est_z'], row['claim_z']], color='purple', alpha=0.3)
-
-            last = data.iloc[-1]
-            ax.set_title(f"Vista da D{obs_id} (Err: {last['discrepancy']:.2f}m)")
-            if i==0: ax.legend(fontsize='x-small')
-
-        plt.tight_layout()
-
-
-    fig_comp = plt.figure(figsize=(12, 10))
-    fig_comp.canvas.manager.set_window_title(f'3. Analisi Comparativa Target {target_id}')
+    # 3. Grafico 3D Comparativo (RIDOTTO/PULITO per Paper)
+    fig_comp = plt.figure(figsize=(10, 8))
+    fig_comp.canvas.manager.set_window_title(f'3. Traiettorie 3D Paper')
     ax_comp = fig_comp.add_subplot(111, projection='3d')
-    ax_comp.set_title(f"Confronto Stime: Chi vede cosa del Target {target_id}?", fontsize=16)
-
+    
+    # Ground Truth (Nero Solido)
     truth_traj = df_target.drop_duplicates(subset=['time'])
     ax_comp.plot(truth_traj['true_x'], truth_traj['true_y'], truth_traj['true_z'], 
-                 color='black', linewidth=3, linestyle='-', label='REALTÀ (Ground Truth)')
-
+                 color='k', linewidth=2, label='Ground Truth')
+    
+    # Claimed (Rosso Tratteggiato - L'attacco)
+    # Prendiamo un observer a caso per vedere cosa dichiara il target
     if not df_target.empty:
         sample_obs = df_target['observer_id'].iloc[0]
         claim_traj = df_target[df_target['observer_id'] == sample_obs]
         ax_comp.plot(claim_traj['claim_x'], claim_traj['claim_y'], claim_traj['claim_z'], 
-                     color='red', linewidth=2, linestyle='--', label='GPS DICHIARATO (Falso)')
+                     color='r', linestyle='--', linewidth=2, label='Spoofed Path')
 
-    obs_colors = plt.cm.tab10(np.linspace(0, 1, len(observer_ids)))
-
-    for i, obs_id in enumerate(observer_ids):
-        data = df_target[df_target['observer_id'] == obs_id]
-        
-        if data.empty: continue
-
-        c = obs_colors[i]
-        
-        ax_comp.plot(data['est_x'], data['est_y'], data['est_z'], 
-                     color=c, linewidth=1.5, alpha=0.8, label=f'Stima da Drone {obs_id}')
-        
-        last = data.iloc[-1]
-        ax_comp.scatter(last['est_x'], last['est_y'], last['est_z'], color=c, s=50)
+    # Estimated (Blu/Verde) - Plottiamo solo la media o uno rappresentativo per pulizia
+    # Qui plottiamo il Drone 2 come esempio
+    example_obs = observer_ids[0] if len(observer_ids) > 0 else 0
+    est_data = df_target[df_target['observer_id'] == example_obs]
+    if not est_data.empty:
+         ax_comp.plot(est_data['est_x'], est_data['est_y'], est_data['est_z'], 
+                     color='b', linewidth=1, alpha=0.7, label=f'EKF Estimate (Obs {example_obs})')
 
     ax_comp.set_xlabel('X [m]')
     ax_comp.set_ylabel('Y [m]')
     ax_comp.set_zlabel('Z [m]')
-    ax_comp.legend(loc='upper right')
+    ax_comp.legend()
+    ax_comp.set_title(f"Ricostruzione Traiettoria vs Attacco (Target {target_id})")
 
-    print("Mostro i grafici... (Controlla le 3 finestre aperte)")
+    print("Visualizzazione grafici...")
     plt.show()
 
 if __name__ == "__main__":

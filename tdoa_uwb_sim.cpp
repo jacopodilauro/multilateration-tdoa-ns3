@@ -22,7 +22,7 @@ using namespace Eigen;
 const int NUM_DRONES = 6;        
 const double SLOT_DURATION = 0.005;
 const double SIM_TIME = 300.0;    
-const double TIME_OF_MALICIOUS = 1000.0;
+const double TIME_OF_MALICIOUS = 200.0;
 // ID del drone che usiamo come orologio di riferimento (Master)
 const int MASTER_ANCHOR_ID = 1;
 

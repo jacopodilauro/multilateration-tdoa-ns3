@@ -72,16 +72,15 @@ To build and run this simulation, ensure you have the following installed:
 
 ## Installation & Usage
 
-1.  **Clone the repository**:
+1.  **Clone the repository in `ns-3-allinone/ns-3.46.1/scratch`**:
     ```bash
-    git clone [https://github.com/jacopodilauro/mlat-dynamic](https://github.com/jacopodilauro/mlat-dynamic)
+    git clone https://github.com/jacopodilauro/multilateration-tdoa-ns3
     ```
 
 2.  **Move to ns-3 directory**:
     Assuming you have ns-3 installed:
     ```bash
-    cp -r mlat-dynamic/* ns-3-allinone/ns-3.dev/scratch/
-    cd ns-3-allinone/ns-3.dev/
+    cd ns-3-allinone/ns-3.46.1/
     ```
 
 3.  **Configure & Build**:
@@ -92,7 +91,7 @@ To build and run this simulation, ensure you have the following installed:
 
 4.  **Run the Simulation**:
     ```bash
-    ./ns3 run "tdoa-uwb-run"
+    ./build/tdoa-uwb-run
     ```
     *This generates a `tdma_security_log.csv` file containing the telemetry.*
 

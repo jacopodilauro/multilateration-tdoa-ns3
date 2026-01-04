@@ -99,6 +99,7 @@ To build and run this simulation, ensure you have the following installed:
     Use the provided Python script to generate the 3D plots and error analysis:
     ```bash
     python3 scratch/plot_tdoa.py
+    python3 scratch/plot_old.py
     ```
 
 ---

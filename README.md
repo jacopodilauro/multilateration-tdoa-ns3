@@ -108,4 +108,3 @@ To build and run this simulation, ensure you have the following installed:
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
-Copyright (c) 2025 Jacopo

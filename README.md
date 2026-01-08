@@ -30,7 +30,7 @@ Crucially, it includes a **Cyber-Physical Security Layer** designed to detect **
 The system tracks the true trajectory of the target. When a **GPS Spoofing attack** occurs (Red dashed line), the EKF estimates (Blue/colored lines) maintain the physics-based trajectory, revealing the discrepancy.
 
 <p align="center">
-  <img src="images/traject_1_spoofing.png" alt="Trajectory Reconstruction" width="60%">
+  <img src="images/visione_tuttidroni_sovrapposti.png" alt="Trajectory Reconstruction" width="60%">
 </p>
 
 ### 2. Security Alarm System
@@ -39,7 +39,7 @@ The plot below demonstrates the **Anomaly Detection** mechanism.
 * **Bottom:** When the attack starts (approx. t=200s), the **Discrepancy (Residual)** between the claimed GPS and the TDoA estimate spikes, triggering the **ALARM ACTIVE** state (Red Zone).
 
 <p align="center">
-  <img src="images/allarme.png" alt="Alarm and Error Analysis" width="60%">
+  <img src="images/grafico_spoofing_real.png" alt="Alarm and Error Analysis" width="60%">
 </p>
 
 ---

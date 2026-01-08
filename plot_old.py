@@ -6,7 +6,7 @@ import sys
 
 def main():
     filename = 'tdma_security_log.csv'
-    print(f"--- Visualizzatore Multi-Drone Avanzato (Comparativo) ---")
+    print(f"--- Visualizzatore Multi-Drone Avanzato (Comparativo + Errori 2D) ---")
     
     try:
         df = pd.read_csv(filename)
@@ -34,6 +34,7 @@ def main():
         print("Nessun dato trovato per questo target.")
         return
 
+    # --- 1. VISIONE GLOBALE 3D ---
     fig_global = plt.figure(figsize=(10, 8))
     fig_global.canvas.manager.set_window_title('1. Visione Globale Sciame')
     ax_global = fig_global.add_subplot(111, projection='3d')
@@ -63,11 +64,12 @@ def main():
     observer_ids = sorted(df['observer_id'].unique())
     num_obs = len(observer_ids)
     
+    # --- 2. DETTAGLIO TARGET (MULTIPLOT 3D) ---
     if num_obs > 0:
         cols = 3; rows = (num_obs + cols - 1) // cols
         fig_detail = plt.figure(figsize=(18, 5 * rows))
         fig_detail.canvas.manager.set_window_title(f'2. Dettaglio Target {target_id}')
-        fig_detail.suptitle(f"Analisi Singola: Cosa vede ogni drone del Target {target_id}?", fontsize=16)
+        fig_detail.suptitle(f"What does every drone in target {target_id} see?", fontsize=16)
 
         for i, obs_id in enumerate(observer_ids):
             ax = fig_detail.add_subplot(rows, cols, i + 1, projection='3d')
@@ -87,12 +89,12 @@ def main():
                 ax.plot([row['est_x'], row['claim_x']], [row['est_y'], row['claim_y']], [row['est_z'], row['claim_z']], color='purple', alpha=0.3)
 
             last = data.iloc[-1]
-            ax.set_title(f"Vista da D{obs_id} (Err: {last['discrepancy']:.2f}m)")
+            ax.set_title(f"D{obs_id} (Err: {last['discrepancy']:.2f}m)")
             if i==0: ax.legend(fontsize='x-small')
 
         plt.tight_layout()
 
-
+    # --- 3. ANALISI COMPARATIVA 3D ---
     fig_comp = plt.figure(figsize=(12, 10))
     fig_comp.canvas.manager.set_window_title(f'3. Analisi Comparativa Target {target_id}')
     ax_comp = fig_comp.add_subplot(111, projection='3d')
@@ -112,14 +114,10 @@ def main():
 
     for i, obs_id in enumerate(observer_ids):
         data = df_target[df_target['observer_id'] == obs_id]
-        
         if data.empty: continue
-
         c = obs_colors[i]
-        
         ax_comp.plot(data['est_x'], data['est_y'], data['est_z'], 
                      color=c, linewidth=1.5, alpha=0.8, label=f'Stima da Drone {obs_id}')
-        
         last = data.iloc[-1]
         ax_comp.scatter(last['est_x'], last['est_y'], last['est_z'], color=c, s=50)
 
@@ -128,7 +126,27 @@ def main():
     ax_comp.set_zlabel('Z [m]')
     ax_comp.legend(loc='upper right')
 
-    print("Mostro i grafici... (Controlla le 3 finestre aperte)")
+    # --- 4. NUOVO: GRAFICI 2D ERRORI DI POSIZIONE ---
+    fig_err = plt.figure(figsize=(12, 6))
+    fig_err.canvas.manager.set_window_title(f'4. Analisi Errori 2D Target {target_id}')
+    ax_err = fig_err.add_subplot(111)
+    
+    ax_err.set_title(f"Errore di Posizione (Stima vs Ground Truth) per Target {target_id}", fontsize=14)
+    
+    for i, obs_id in enumerate(observer_ids):
+        data = df_target[df_target['observer_id'] == obs_id]
+        if data.empty: continue
+        
+        # 'estimation_error' nel CSV è calcolato come norm(estimated - true)
+        ax_err.plot(data['time'], data['estimation_error'], 
+                    label=f'Errore Drone {obs_id}', linewidth=1.5, alpha=0.9)
+
+    ax_err.set_xlabel('Tempo [s]', fontsize=12)
+    ax_err.set_ylabel('Errore Euclideo [m]', fontsize=12)
+    ax_err.grid(True, linestyle='--', alpha=0.7)
+    ax_err.legend(loc='upper left')
+
+    print("Mostro i grafici... (Controlla le 4 finestre aperte)")
     plt.show()
 
 if __name__ == "__main__":

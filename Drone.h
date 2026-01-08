@@ -57,13 +57,14 @@ public:
 private:
     uint32_t m_id;
     bool m_is_malicious;
+    double m_clock_drift_ns;        // Errore fisico hardware
+    double m_clock_offset_correction; // Correzione software calcolata (Sync)
+    double m_attack_start_time;//qunado inizia l'attacco
     
     Vector3d m_true_position;
     TrajectoryFunc m_trajectory;
     
     // Parametri Clock
-    double m_clock_drift_ns;        // Errore fisico hardware
-    double m_clock_offset_correction; // Correzione software calcolata (Sync)
 
     // Rumore GPS
     std::mt19937 m_rng;

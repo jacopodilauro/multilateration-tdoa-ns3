@@ -13,7 +13,7 @@ TypeId Drone::GetTypeId() {
     return tid;
 }
 
-Drone::Drone() : m_id(0), m_is_malicious(false), m_clock_drift_ns(0.0), m_clock_offset_correction(0.0) {
+Drone::Drone() : m_id(0), m_is_malicious(false), m_clock_drift_ns(0.0), m_clock_offset_correction(0.0), m_attack_start_time(0.0) {
     std::random_device rd;
     m_rng.seed(rd());
     m_gps_noise_horiz = std::normal_distribution<double>(0.0, 0.05); 
@@ -25,7 +25,14 @@ Drone::~Drone() {}
 void Drone::SetId(uint32_t id) { m_id = id; }
 uint32_t Drone::GetId() const { return m_id; }
 
-void Drone::SetMalicious(bool is_malicious) { m_is_malicious = is_malicious; }
+void Drone::SetMalicious(bool is_malicious) 
+{ 
+	if (is_malicious && !m_is_malicious) 
+	{
+        m_attack_start_time = Simulator::Now().GetSeconds();
+    }
+	m_is_malicious = is_malicious; 
+}
 void Drone::SetInitialPosition(Vector3d pos) { m_true_position = pos; }
 void Drone::SetTrajectory(std::function<Vector3d(double)> traj_func) { m_trajectory = traj_func; }
 bool Drone::IsMalicious() { return m_is_malicious; }
@@ -44,7 +51,30 @@ Vector3d Drone::AddGPSNoise(Vector3d true_pos) {
 
 Vector3d Drone::GetGPSPosition() {
     Vector3d noisy = AddGPSNoise(m_true_position);
-    if (m_is_malicious) noisy.y() += 15.0; 
+    //if (m_is_malicious) noisy.y() += 15.0; 
+    //modify
+    if (m_is_malicious) {
+        // --- CONFIGURAZIONE RAMPA ---
+        const double TARGET_OFFSET = 15.0; // Offset finale in metri (Y)
+        const double RAMP_DURATION = 10.0; // Durata della transizione in secondi
+        // ----------------------------
+
+        double now = Simulator::Now().GetSeconds();
+        
+        // Calcola da quanto tempo è attivo l'attacco
+        double time_elapsed = now - m_attack_start_time;
+
+        // Calcola la percentuale di completamento (da 0.0 a 1.0)
+        double progress = time_elapsed / RAMP_DURATION;
+        
+        // Clamping: assicuriamoci che stia tra 0 e 1
+        if (progress < 0.0) progress = 0.0;
+        if (progress > 1.0) progress = 1.0;
+
+        // Applica l'offset scalato
+        noisy.y() += (TARGET_OFFSET * progress); 
+    }
+    //end
     return noisy;
 }
 

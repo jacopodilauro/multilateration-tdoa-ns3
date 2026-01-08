@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
 
     swarm[0]->SetTrajectory(GetTargetTrajectory());
     swarm[0]->SetMalicious(false);
-    swarm[0]->SetClockDrift(10000.0); // Target molto sfasato (EKF deve gestirlo)
+    swarm[0]->SetClockDrift(10000.0); 
     cout << ">>> Configurazione: D0 Target (Spoofer) attivato." << endl;
 
     std::mt19937 init_rng(1234); 
@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
     Simulator::Schedule(Seconds(TIME_OF_MALICIOUS), [swarm]()
 	{
     // Attiva la modalità malevola sul drone 0 (Target)
-    swarm[0]->SetMalicious(true); 
+    swarm[0]->SetMalicious(false); 
     std::cout << ">>> ATTACCO ATTIVATO: Il Drone 0 inizia lo spoofing GPS a t="<< TIME_OF_MALICIOUS <<"s <<<" << std::endl;
 	});
 

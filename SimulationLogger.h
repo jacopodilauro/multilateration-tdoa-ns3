@@ -18,7 +18,8 @@ public:
         int sender_id, 
         int observer_id,
         Eigen::Vector3d claimed_gps, 
-        std::ofstream& csv
+               Eigen::Vector3d recovered_pos,
+               std::ofstream& csv
     ) {
         
         Ptr<Drone> observer = m_swarm[observer_id];
@@ -41,10 +42,11 @@ public:
         // 4. Scrittura su CSV
 
         csv << time << "," << sender_id << "," << observer_id << ","
-            << estimated.x() << "," << estimated.y() << "," << estimated.z() << ","
-            << claimed_gps.x() << "," << claimed_gps.y() << "," << claimed_gps.z() << ","
-            << truth.x() << "," << truth.y() << "," << truth.z() << ","
-            << discrepancy << "," << estimation_error << "," << alarm << "\n";
+        << estimated.x() << "," << estimated.y() << "," << estimated.z() << ","
+        << claimed_gps.x() << "," << claimed_gps.y() << "," << claimed_gps.z() << ","
+        << truth.x() << "," << truth.y() << "," << truth.z() << ","
+        << discrepancy << "," << estimation_error << "," << alarm << ","
+        << recovered_pos.x() << "," << recovered_pos.y() << "," << recovered_pos.z() << "\n";
     }
 
 private:

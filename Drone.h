@@ -16,8 +16,16 @@ using namespace std;
 // Definiamo un tipo per la funzione di traiettoria
 typedef std::function<Vector3d(double)> TrajectoryFunc;
 
+
 class Drone : public Object {
 public:
+    // Drone.h
+	void ResetState(Vector3d corrected_pos);
+
+    Vector3d GetRecoveredPosition(int target_id, const std::map<int, 
+                                  Vector3d>& all_peer_estimates);
+    uint32_t GetVoteBitmask();
+
     static TypeId GetTypeId();
     Drone();
     virtual ~Drone();

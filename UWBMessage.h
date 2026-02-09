@@ -7,6 +7,7 @@ struct UWBMessage {
     uint32_t sender_id;         // Chi invia
     uint64_t tx_timestamp_ps;   // Timestamp invio
     Eigen::Vector3d gps_position;
+    uint32_t vote_bitmask;
 };
 
 // La misura presa da chi ascolta

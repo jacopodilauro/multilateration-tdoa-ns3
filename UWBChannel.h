@@ -2,9 +2,11 @@
 #define UWB_CHANNEL_H
 
 #include "ns3/core-module.h"
+#include "UWBMessage.h"
 #include <Eigen/Dense>
 #include <random>
 #include <vector>
+#include <cstdint>
 
 using namespace ns3;
 using namespace Eigen;

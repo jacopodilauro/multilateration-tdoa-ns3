@@ -128,9 +128,31 @@ private:
             drone->ComputeNeighborPosition(tx_idx, msg.gps_position, drone_specific_buffer, now, tx_time_sec);
         }
 
+// --- LOGICA CONSENSO E RECOVERY (SWARMRAFT) ---
+        
+        // 1. Fase di Votazione: calcoliamo la somma dei voti S_i 
+        std::map<int, Vector3d> peer_estimates;
+        int total_votes = 0;
+
+// 1. Fase di Votazione: calcoliamo la somma dei voti S_i usando la Bitmask Radio
+        for(auto& drone : m_swarm) {
+            int observer_id = drone->GetId();
+            if(observer_id == tx_idx) continue;
+            peer_estimates[observer_id] = drone->GetEstimatedPositionOf(tx_idx);
+            uint32_t mask = drone->GetVoteBitmask(); 
+            bool vote_bit = (mask >> tx_idx) & 1; 
+            total_votes += (vote_bit ? 1 : -1); 
+        }
+        Vector3d recovered_pos;
+        if (total_votes <= -3) { 
+            recovered_pos = m_swarm[0]->GetRecoveredPosition(tx_idx, peer_estimates);
+			m_swarm[tx_idx]->ResetState(recovered_pos);
+        } else {
+            recovered_pos = msg.gps_position;
+        }
         for(size_t i = 0; i < m_swarm.size(); ++i) {
             if((int)i == tx_idx) continue;
-            m_logger.LogObservation(now, tx_idx, i, msg.gps_position, m_csv);
+            m_logger.LogObservation(now, tx_idx, i, msg.gps_position, recovered_pos, m_csv);
         }
 
         m_current_slot_idx++;
@@ -184,13 +206,14 @@ int main(int argc, char* argv[]) {
     Simulator::Schedule(Seconds(TIME_OF_MALICIOUS), [swarm]()
 	{
     // Attiva la modalità malevola sul drone 0 (Target)
-    swarm[0]->SetMalicious(false); 
+    swarm[0]->SetMalicious(true); 
     std::cout << ">>> ATTACCO ATTIVATO: Il Drone 0 inizia lo spoofing GPS a t="<< TIME_OF_MALICIOUS <<"s <<<" << std::endl;
 	});
 
     ofstream csv("tdma_security_log.csv");
     if(!csv.is_open()) return 1;
-    csv << "time,sender_id,observer_id,est_x,est_y,est_z,claim_x,claim_y,claim_z,true_x,true_y,true_z,discrepancy,estimation_error,alarm\n";
+    // tdoa_uwb_sim.cpp (dentro main)
+csv << "time,sender_id,observer_id,est_x,est_y,est_z,claim_x,claim_y,claim_z,true_x,true_y,true_z,discrepancy,estimation_error,alarm,rec_x,rec_y,rec_z\n";
 
     SimulationLogger logger(swarm);
     TDMAScheduler scheduler(swarm, channel, logger, csv);

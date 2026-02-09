@@ -33,7 +33,7 @@ def plot_error_analysis(df_target, target_id, observer_ids):
         ax1.plot(data['time'], data['estimation_error'], 
                  label=f'Obs {obs_id}', color=colors[i], linewidth=1.5, alpha=0.8)
 
-    ax1.set_ylabel('Errore Posizione [m]')
+    ax1.set_ylabel('Discrepancy (Claim vs Est.) [m]')
     ax1.set_title('Accuratezza Localizzazione (Ground Truth vs EKF)', fontsize=14)
     ax1.grid(True, linestyle='--', alpha=0.6)
     ax1.legend(loc='upper right', fontsize='small', ncol=2)
@@ -46,7 +46,7 @@ def plot_error_analysis(df_target, target_id, observer_ids):
                  color=colors[i], linewidth=1.5, alpha=0.8, label=f'Residuo Obs {obs_id}')
 
     # Soglia di allarme
-    ax2.axhline(y=5.0, color='r', linestyle='--', linewidth=2, label='Soglia Allarme (5m)')
+    ax2.axhline(y=10.0, color='r', linestyle='--', linewidth=2, label='Soglia Allarme (5m)')
     
     # Calcolo "voto di maggioranza" per lo sfondo
     times = df_target['time'].unique()
@@ -62,9 +62,9 @@ def plot_error_analysis(df_target, target_id, observer_ids):
             ax2.axvspan(t - 0.05, t + 0.05, color='red', alpha=0.05)
         ax2.text(consensus_alarm[0], ax2.get_ylim()[1]*0.9, " ALARM ACTIVE", color='red', fontweight='bold')
 
-    ax2.set_ylabel('Discrepanza (Claim vs Stima) [m]')
-    ax2.set_xlabel('Tempo Simulazione [s]')
-    ax2.set_title(r'Rilevamento Anomalie (Residuo > Soglia)', fontsize=14)
+    ax2.set_ylabel('Discrepanza (Claim vs Est.) [m]')
+    ax2.set_xlabel('Simulation Time [s]')
+    ax2.set_title(r'Anomaly Detection (Residual > Threshold)', fontsize=14)
     ax2.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
 

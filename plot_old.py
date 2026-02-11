@@ -17,7 +17,7 @@ def main():
     available_ids = sorted(df['sender_id'].unique())
     print(f"ID Trovati: {available_ids}")
 
-    target_id = 0 # Default
+    target_id = 0
     if len(sys.argv) > 1:
         try:
             target_id = int(sys.argv[1])
@@ -34,7 +34,6 @@ def main():
         print("Nessun dato trovato per questo target.")
         return
 
-    # --- 1. VISIONE GLOBALE 3D ---
     fig_global = plt.figure(figsize=(10, 8))
     fig_global.canvas.manager.set_window_title('1. Visione Globale Sciame')
     ax_global = fig_global.add_subplot(111, projection='3d')
@@ -64,7 +63,6 @@ def main():
     observer_ids = sorted(df['observer_id'].unique())
     num_obs = len(observer_ids)
     
-    # --- 2. DETTAGLIO TARGET (MULTIPLOT 3D) ---
     if num_obs > 0:
         cols = 3; rows = (num_obs + cols - 1) // cols
         fig_detail = plt.figure(figsize=(18, 5 * rows))
@@ -94,7 +92,6 @@ def main():
 
         plt.tight_layout()
 
-    # --- 3. ANALISI COMPARATIVA 3D ---
     fig_comp = plt.figure(figsize=(12, 10))
     fig_comp.canvas.manager.set_window_title(f'3. Analisi Comparativa Target {target_id}')
     ax_comp = fig_comp.add_subplot(111, projection='3d')
@@ -126,7 +123,6 @@ def main():
     ax_comp.set_zlabel('Z [m]')
     ax_comp.legend(loc='upper right')
 
-    # --- 4. NUOVO: GRAFICI 2D ERRORI DI POSIZIONE ---
     fig_err = plt.figure(figsize=(12, 6))
     fig_err.canvas.manager.set_window_title(f'4. Analisi Errori 2D Target {target_id}')
     ax_err = fig_err.add_subplot(111)
@@ -137,7 +133,6 @@ def main():
         data = df_target[df_target['observer_id'] == obs_id]
         if data.empty: continue
         
-        # 'estimation_error' nel CSV è calcolato come norm(estimated - true)
         ax_err.plot(data['time'], data['estimation_error'], 
                     label=f'Errore Drone {obs_id}', linewidth=1.5, alpha=0.9)
 

@@ -16,7 +16,7 @@ void TDoAEKF::Init(const Vector3d& init_pos) {
     m_state(6) = 0.0; 
     
     m_P = MatrixXd::Identity(7, 7);
-    m_P.block<3,3>(0,0) *= 5.0;  // 5m di incertezza iniziale 
+    m_P.block<3,3>(0,0) *= 5.0; 
     m_P.block<3,3>(3,3) *= 1.0;  
     m_P(6,6) = 500.0;            
     
@@ -52,20 +52,14 @@ void TDoAEKF::Update(const vector<Msmnt>& measurements) {
     for(int i = 0; i < n; ++i) {
         Vector3d anchor_pos = measurements[i].anchor_pos;
         
-        // Misura
         double pseudorange = (measurements[i].toa - measurements[i].tx_timestamp) * c;
         Z(i) = pseudorange;
-
-        // Ipotesi
         double geo_dist = (est_pos - anchor_pos).norm();
         h(i) = geo_dist + est_bias;
-
-        // Jacobiano
         double safe_dist = geo_dist + 1e-9;
         H(i, 0) = (est_pos.x() - anchor_pos.x()) / safe_dist;
         H(i, 1) = (est_pos.y() - anchor_pos.y()) / safe_dist;
         H(i, 2) = (est_pos.z() - anchor_pos.z()) / safe_dist;
-        
         H(i, 3) = 0; H(i, 4) = 0; H(i, 5) = 0;
         H(i, 6) = 1.0; 
     }

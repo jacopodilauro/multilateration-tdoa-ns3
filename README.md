@@ -1,4 +1,4 @@
-<h1 align="center">📡 TDoA Multilateration for UWB Swarm Simulation & Security</h1>
+<h1 align="center">📡 TDoA Multilateration for Drone Swarm</h1>
 
 <p align="center">
    Ns-3 simulation for distributed localization, clock synchronization, and GPS spoofing detection.

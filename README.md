@@ -30,7 +30,7 @@ It's compose into this classes:
 To build and run this simulation, ensure you have the following installed:
 
 * **[ns-3](https://www.nsnam.org/)** (v3.30+ recommended)
-    * Modules: `core`, `network`, `mobility`, `wifi`, `applications`.
+    * Modules: `core`, `network`, `mobility`.
 * **[Eigen3](https://eigen.tuxfamily.org/)**: Required for EKF matrix operations.
 * **CMake** (v3.3+).
 * **Python 3** (Matplotlib, Pandas, NumPy) for plotting.

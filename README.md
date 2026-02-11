@@ -1,7 +1,7 @@
 <h1 align="center">📡 TDoA Multilateration for UWB Swarm Simulation & Security</h1>
 
 <p align="center">
-  <strong>High-fidelity ns-3 simulation for distributed localization, clock synchronization, and GPS spoofing detection.</strong>
+   Ns-3 simulation for distributed localization, clock synchronization, and GPS spoofing detection.
 </p>
 
 <p align="center">
@@ -12,49 +12,16 @@
 
 ## Overview
 
-This project implements a **Distributed Extended Kalman Filter (EKF)** framework within **ns-3** to simulate autonomous drone swarms utilizing **Ultra-Wideband (UWB)** technology. It focuses on **Time Difference of Arrival (TDoA)** multilateration to estimate relative positions without relying solely on GPS.
+This project implements **ns-3 simulation** designed to model drone swarm using Ultra-WideBand (UWB) tecnology for GPS spoofing detection. The system uses Time Difference of Arrival (TDoA) multilateration. 
+It's compose into this classes:
+1. **tdoa_main.cpp**: inizialize the swarm's initialization and Round Robin TDMA scheduler. It manages the simulation timeline, including the activation of a GPS spoofing attack on a target drone at a specific time (t=200s).
+2. **Drone.cpp/h & .h**: Defines the behavior of each swarm member, including its true position, noisy GPS reporting, and clock drift management.
+3. **UWBMessage.h**: compose the data structure for comunication
+4. **TDoAEKF.cpp/h**: Custom Distributed Extended Kalman Filter (EKF).
+5. **UWBChannel.cpp/h**: Simulates a custom UWB physical layer based on IEEE 802.15.4a standards, it include Line-of-Sight (LOS) and Non-Line-of-Sight (NLOS) conditions, path loss and distance error.
+6. **Trajectories.cpp/h**: Provides mathematical functions for various flight patterns, such as Atomic Shell, Circular Patrol, and **Octahedron formations**. 
 
-Crucially, it includes a **Cyber-Physical Security Layer** designed to detect **GPS Spoofing attacks**. By cross-referencing claimed GPS positions with physics-based TDoA ranging data, the system identifies anomalies and triggers alarms when a drone's reported position contradicts the UWB measurements.
 
-### Key Capabilities
-* **Physics-Based UWB Channel**: Realistic propagation modeling including Path Loss, Shadowing, and LOS/NLOS stochastic determination.
-* **Distributed Estimation**: Each drone runs an independent EKF bank to track neighbors (Position $x,y,z$ + Clock Bias).
-* **Clock Synchronization**: Implements a Master Anchor synchronization scheme to mitigate hardware clock drift.
-* **Security & Anomaly Detection**: Real-time detection of malicious nodes broadcasting false GPS coordinates.
-
----
-
-## Simulation Results
-
-### 1. 3D Trajectory Reconstruction vs. Attack
-The system tracks the true trajectory of the target. When a **GPS Spoofing attack** occurs (Red dashed line), the EKF estimates (Blue/colored lines) maintain the physics-based trajectory, revealing the discrepancy.
-
-<p align="center">
-  <img src="images/visione_tuttidroni_sovrapposti.png" alt="Trajectory Reconstruction" width="60%">
-</p>
-
-### 2. Security Alarm System
-The plot below demonstrates the **Anomaly Detection** mechanism. 
-* **Top:** The estimation error remains low during normal operations.
-* **Bottom:** When the attack starts (approx. t=200s), the **Discrepancy (Residual)** between the claimed GPS and the TDoA estimate spikes, triggering the **ALARM ACTIVE** state (Red Zone).
-
-<p align="center">
-  <img src="images/grafico_spoofing_real.png" alt="Alarm and Error Analysis" width="60%">
-</p>
-
----
-
-## Technical Architecture
-
-### The UWB Channel Model
-Custom `UWBChannel` class simulating environmental effects based on IEEE 802.15.4a standards:
-* **LOS Probability**: $P_{LOS} = \exp(-d / \gamma)$ based on environment (Indoor/Outdoor).
-* **Ranging Error**: Gaussian noise for LOS, plus Biased Noise for NLOS conditions.
-
-### Extended Kalman Filter (EKF) State
-Each drone maintains a state vector $\mathbf{x}$ for every neighbor:
-$$\mathbf{x} = [x, y, z, v_x, v_y, v_z, \delta t]^T$$
-Where $\delta t$ represents the clock bias relative to the observer.
 
 ---
 
@@ -91,7 +58,7 @@ To build and run this simulation, ensure you have the following installed:
 
 4.  **Run the Simulation**:
     ```bash
-    ./build/tdoa-uwb-run
+    ./build/tdma_main
     ```
     *This generates a `tdma_security_log.csv` file containing the telemetry.*
 

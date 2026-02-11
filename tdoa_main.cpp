@@ -6,24 +6,46 @@
  * 
  * Content of the Directory:
  * La cartella è divisa in diversi file:
- * tdoa_main: è il file principale in cui avviene la simulazione, il metodo TDMAScheduler gestisce tutta la logica temporale (Round Robin)
+ * tdoa_main:           è il file principale in cui avviene la simulazione, il metodo TDMAScheduler gestisce tutta la logica temporale (Round Robin)
  *           Main
- *              1. Inizializzo il canale di comunicazione Ultra-WideBand (UWB) settando l'environment 'outdoor', il settaggio del tipo di 
- *                  ambiente modifica semplicemente il coefficiente di Packet Loss, se siamo al chiuso le distanze saranno minori e quindi anche 
- *                  un minor rischio di perdere informazioni. 
- *                  Il canale l'ho dovuto fare "custom" dato che non esistono moduli in ns3 uwb e online ho trovato solo una guida ma che non
- *                  sono riuscito a concretizzare. Per la realizzazione del canale mi sono fatto aiutare da l'LLM gemini. 
- *              2. Inizializzazione Sciame. Credo un insieme di oggetti Droni, settandoli tutti non malevoli, durante la simulazione però verrà settata
- *                 positiva la variabile booleana 'is_malicious' del drone 0 al tempo 200. Ogni drone è composto di un clock drift che sfaserà di pochi 
- *                 nanosecodi l'orologio del drone. Al dorne 0 viene settato un clockdrift fisso per controllare meglio il comportamento. Ogni drone 
- *                 dalla classe Trajecotry riceverà le coordinate di posizionamento a seconda della forma dello sciame, come spiegato nel paper
- *                 la forma migliore è la ottaedro. Dopo aver pianificato gli aggiornamenti della posizione di ogni drone ogni 0,05s inizio con la 
- *                 simulazione.
- *              3. Simulazione. Start() fa partire lo schedulerNexSlot  
- *
- *                
- *    
+ *                  1.  Inizializzo il canale di comunicazione Ultra-WideBand (UWB) settando l'environment 'outdoor', il settaggio del tipo di 
+ *                      ambiente modifica semplicemente il coefficiente di Packet Loss, se siamo al chiuso le distanze saranno minori e quindi anche 
+ *                      un minor rischio di perdere informazioni. 
+ *                      Il canale l'ho dovuto fare "custom" dato che non esistono moduli in ns3 uwb e online ho trovato solo una guida ma che non
+ *                      sono riuscito a concretizzare. Per la realizzazione del canale mi sono fatto aiutare da l'LLM gemini. 
+ *                  2.  Inizializzazione Sciame. Credo un insieme di oggetti Droni, settandoli tutti non malevoli, durante la simulazione però verrà settata
+ *                      positiva la variabile booleana 'is_malicious' del drone 0 al tempo 200. Ogni drone è composto di un clock drift che sfaserà di pochi 
+ *                      nanosecodi l'orologio del drone. Al dorne 0 viene settato un clockdrift fisso per controllare meglio il comportamento. Ogni drone 
+ *                      dalla classe Trajecotry riceverà le coordinate di posizionamento a seconda della forma dello sciame, come spiegato nel paper
+ *                      la forma migliore è la ottaedro. Dopo aver pianificato gli aggiornamenti della posizione di ogni drone ogni 0,05s inizio con la 
+ *                      simulazione.
+ *                  3.  Simulazione. Start() fa partire lo schedulerNexSlot, che a sua volta fa partire 'ExecuteSlot'  
+ *                  4.  Sincronizzazione: Se il trasmettitore è il Master Anchor (ID 1), i ricevitori correggono il proprio offset temporale.
+ *                  5.  Logica di Sicurezza (SwarmRaft): I droni scambiano le stime e una bitmask di voti. Se un drone riceve troppi voti negativi (ovvero
+ *                      i vicini rilevano incoerenza tra la sua posizione GPS dichiarata e quella stimata via TDoA), il sistema forza una correzione della 
+ *                      sua posizione (`ResetState`) usando le mediane del gruppo, mitigando l'attacco spoofing.
  * 
+ * Drone.cpp/h:         Definisce l'agente dello sciame. Ogni drone mantiene una "banca" di Extended Kalman Filters (`m_my_ekf_bank`) per tracciare la posizione
+ *                      di tutti gli altri membri dello sciame. Contiene la logica di rilevamento anomalie: se la distanza tra il GPS dichiarato da un vicino 
+ *                      e la stima locale supera una soglia (10m), il drone alza un flag di allarme nella sua `vote_bitmask`.
+ *    
+ * Trajectories.cpp/h:  Fornisce le leggi di moto per i droni. Ho implementato diverse formazioni, ma quella utilizzata principalmente è l'Ottaedro poichè 
+ *                      garantisce la miglior efficienza geometrica (GDOP) in cui tutti i nodi hanno la stessa distanza e angoli gli uni dagli altri.
+ * 
+ * TDoAEKF.cpp/h, 
+ * UWBChannel.cpp/h:    Sono classi custom realizzate esclusivamente per simulare componenti hardware nel più realistico dei modi. Non esistno moduli
+ *                      per l'Extended Kalman Filter e per Ultra-WideBand su ns-3 quindi ho optato nel crearmeli da solo e data la loro natura complicata mi sono fatto 
+ *                      aiutare da un LLM e da video-spiegazione sul funzionamento di questi dispositivi. Tuttavia mi piacerebbe mettermi in gioco nel realizzare
+ *                      una classe UWB implementabile con i nodi di ns-3. In Ns-3 ci sono moduli wifi ecc.. ma non mi permattevano di personalizzarli 
+ *                      a mio piacimento (o per mia mancate competenze).
+ * 
+ * SimulationLogger.h:  Classe di supporto che raccoglie: (posizioni vere, stimate, GPS spoofato e stato degli allarmi) e li scrive 
+ *                      su un file CSV (`tdma_security_log.csv`) per la post-elaborazione con gli script Python.
+ * 
+ * plot_tdoa.py,        Script che raccolgono le coordinate dal file tdma_security_log.csv, permettendomi di ricavare informazioni grafiche e non dal sistema
+ * plot_old.py,         Dato che non ho molta esperienza in python mi sono fatto aiutare da un LLM.
+ * test_swarm_voting.py
+ *             
  */
 
 #include "ns3/core-module.h"
@@ -224,6 +246,6 @@ int main(int argc, char* argv[]) {
     Simulator::Run();
     Simulator::Destroy();
     cout << "--- End. ---" << endl;
-
+    cout << "--- For Result, see python files. ---" << endl;
     return 0;
 }

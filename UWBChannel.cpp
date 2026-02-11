@@ -22,34 +22,11 @@ UWBChannel::UWBChannel()
 
 UWBChannel::~UWBChannel() {}
 
-void UWBChannel::SetEnvironment(std::string env_type) 
-{
-    m_environment = env_type;
-}
-
-void UWBChannel::AddObstacle(Vector3d center, double radius) 
-{
-    m_obstacles.push_back({center, radius});
-}
+void UWBChannel::SetEnvironment(std::string env_type) { m_environment = env_type; }
 
 bool UWBChannel::DetermineLOS(Vector3d tx, Vector3d rx) 
 {
-    Vector3d direction = (rx - tx).normalized();
     double total_distance = (rx - tx).norm();
-    
-    const int num_samples = 20;
-    for (int i = 0; i < num_samples; ++i) {
-        double t = (i / double(num_samples)) * total_distance;
-        Vector3d point = tx + direction * t;
-        
-        for (const auto& obs : m_obstacles) {
-            double dist_to_obstacle = (point - obs.first).norm();
-            if (dist_to_obstacle < obs.second) {
-                return false; 
-            }
-        }
-    }
-    
     double distance = total_distance;
     double p_los;
     

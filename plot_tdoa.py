@@ -4,7 +4,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import sys
 
-# Impostazioni stile per pubblicazioni
 plt.rcParams.update({'font.size': 12, 'figure.autolayout': True})
 
 def calculate_metrics(df_target):
@@ -26,7 +25,6 @@ def plot_error_analysis(df_target, target_id, observer_ids):
     
     colors = plt.cm.tab10(np.linspace(0, 1, len(observer_ids)))
 
-    # --- SUBPLOT 1: ERRORE DI STIMA (Performance) ---
     for i, obs_id in enumerate(observer_ids):
         data = df_target[df_target['observer_id'] == obs_id]
         if data.empty: continue
@@ -34,21 +32,18 @@ def plot_error_analysis(df_target, target_id, observer_ids):
                  label=f'Obs {obs_id}', color=colors[i], linewidth=1.5, alpha=0.8)
 
     ax1.set_ylabel('Discrepancy (Claim vs Est.) [m]')
-    ax1.set_title('Accuratezza Localizzazione (Ground Truth vs EKF)', fontsize=14)
+    ax1.set_title('Location Accuracy (Ground Truth vs EKF)', fontsize=14)
     ax1.grid(True, linestyle='--', alpha=0.6)
     ax1.legend(loc='upper right', fontsize='small', ncol=2)
 
-    # --- SUBPLOT 2: DISCREPANZA & ALLARMI (Sicurezza) ---
     for i, obs_id in enumerate(observer_ids):
         data = df_target[df_target['observer_id'] == obs_id]
         if data.empty: continue
         ax2.plot(data['time'], data['discrepancy'], 
                  color=colors[i], linewidth=1.5, alpha=0.8, label=f'Residuo Obs {obs_id}')
 
-    # Soglia di allarme
     ax2.axhline(y=10.0, color='r', linestyle='--', linewidth=2, label='Soglia Allarme (5m)')
     
-    # Calcolo "voto di maggioranza" per lo sfondo
     times = df_target['time'].unique()
     consensus_alarm = []
     for t in times:
@@ -56,7 +51,6 @@ def plot_error_analysis(df_target, target_id, observer_ids):
         if active_alarms >= len(observer_ids) / 2: 
             consensus_alarm.append(t)
     
-    # Indentazione corretta del blocco allarme
     if consensus_alarm:
         for t in consensus_alarm:
             ax2.axvspan(t - 0.05, t + 0.05, color='red', alpha=0.05)
@@ -99,7 +93,6 @@ def main():
 
     plot_error_analysis(df_target, target_id, observer_ids)
 
-    # Grafico 3D
     fig_comp = plt.figure(figsize=(10, 8))
     fig_comp.canvas.manager.set_window_title(f'3. Traiettorie 3D Paper')
     ax_comp = fig_comp.add_subplot(111, projection='3d')

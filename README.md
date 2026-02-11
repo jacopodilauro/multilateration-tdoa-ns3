@@ -44,6 +44,20 @@ The plot below demonstrates the **Anomaly Detection** mechanism.
 
 ---
 
+## Technical Architecture
+
+### The UWB Channel Model
+Custom `UWBChannel` class simulating environmental effects based on IEEE 802.15.4a standards:
+* **LOS Probability**: $P_{LOS} = \exp(-d / \gamma)$ based on environment (Indoor/Outdoor).
+* **Ranging Error**: Gaussian noise for LOS, plus Biased Noise for NLOS conditions.
+
+### Extended Kalman Filter (EKF) State
+Each drone maintains a state vector $\mathbf{x}$ for every neighbor:
+$$\mathbf{x} = [x, y, z, v_x, v_y, v_z, \delta t]^T$$
+Where $\delta t$ represents the clock bias relative to the observer.
+
+---
+
 ## Dependencies
 
 To build and run this simulation, ensure you have the following installed:

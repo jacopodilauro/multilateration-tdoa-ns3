@@ -15,7 +15,6 @@ TypeId Drone::GetTypeId() {
 }
 
 void Drone::ResetState(Vector3d recovered_pos) {
-	// Fattore di smoothing (0.1 = molto dolce, 0.5 = medio)
 	const double alpha = 0.15; 
 	m_true_position = (1.0 - alpha) * m_true_position + alpha * recovered_pos;
     double dist = (m_true_position - recovered_pos).norm();
@@ -25,9 +24,9 @@ void Drone::ResetState(Vector3d recovered_pos) {
 }
 
 uint32_t Drone::GetVoteBitmask() {
-    uint32_t mask = 0xFFFFFFFF; // Tutti onesti all'inizio (tutti bit a 1)
+    uint32_t mask = 0xFFFFFFFF; 
     for (auto const& [id, is_alarm] : m_security_alarm) {
-        if (is_alarm) mask &= ~(1 << id); // Se c'è allarme, metti il bit a 0
+        if (is_alarm) mask &= ~(1 << id);
     }
     return mask;
 }
@@ -77,7 +76,6 @@ bool Drone::IsMalicious() { return m_is_malicious; }
 Vector3d Drone::GetRecoveredPosition(int target_id, const std::map<int, Vector3d>& all_peer_estimates) {
     std::vector<double> x_coords, y_coords, z_coords;
 
-    // Raccogliamo le stime di tutti i peer per il target_id
     for (auto const& [peer_id, estimate] : all_peer_estimates) {
         x_coords.push_back(estimate.x());
         y_coords.push_back(estimate.y());
@@ -86,21 +84,18 @@ Vector3d Drone::GetRecoveredPosition(int target_id, const std::map<int, Vector3d
 
     if (x_coords.empty()) return Vector3d(0,0,0);
 
-    // Funzione helper per trovare il mediano
     auto findMedian = [](std::vector<double>& v) {
         size_t n = v.size() / 2;
         std::nth_element(v.begin(), v.begin() + n, v.end());
         return v[n];
     };
-
-    // Calcolo del mediano coordinato 
+     
     return Vector3d(
         findMedian(x_coords),
         findMedian(y_coords),
         findMedian(z_coords)
     );
 }
-
 
 void Drone::UpdatePosition(double time) {
     if (m_trajectory) m_true_position = m_trajectory(time);
@@ -116,42 +111,27 @@ Vector3d Drone::AddGPSNoise(Vector3d true_pos) {
 
 Vector3d Drone::GetGPSPosition() {
     Vector3d noisy = AddGPSNoise(m_true_position);
-    //if (m_is_malicious) noisy.y() += 15.0; 
-    //modify
     if (m_is_malicious) {
-        // --- CONFIGURAZIONE RAMPA ---
-        const double TARGET_OFFSET = 15.0; // Offset finale in metri (Y)
-        const double RAMP_DURATION = 10.0; // Durata della transizione in secondi
-        // ----------------------------
+        const double TARGET_OFFSET = 15.0; 
+        const double RAMP_DURATION = 10.0; 
 
         double now = Simulator::Now().GetSeconds();
-        
-        // Calcola da quanto tempo è attivo l'attacco
         double time_elapsed = now - m_attack_start_time;
-
-        // Calcola la percentuale di completamento (da 0.0 a 1.0)
         double progress = time_elapsed / RAMP_DURATION;
-        
-        // Clamping: assicuriamoci che stia tra 0 e 1
         if (progress < 0.0) progress = 0.0;
         if (progress > 1.0) progress = 1.0;
-
-        // Applica l'offset scalato
         noisy.y() += (TARGET_OFFSET * progress); 
     }
-    //end
     return noisy;
 }
 
 Vector3d Drone::GetTruePosition() const { return m_true_position; }
 
-// --- GESTIONE CLOCK ---
 void Drone::SetClockDrift(double drift_ns) { m_clock_drift_ns = drift_ns; }
 double Drone::GetClockDrift() const { return m_clock_drift_ns; }
 
 void Drone::SetClockOffset(double offset) { m_clock_offset_correction = offset; }
 double Drone::GetClockOffset() const { return m_clock_offset_correction; }
-// ----------------------
 
 void Drone::ComputeNeighborPosition(int sender_id, Vector3d claimed_gps, const vector<RangingMeasurement>& measurements,
     								double current_time, double tx_timestamp_sec) 
@@ -165,7 +145,6 @@ void Drone::ComputeNeighborPosition(int sender_id, Vector3d claimed_gps, const v
         m_security_alarm[sender_id] = false;
     }
     
-    // Servono almeno 4 ancore per risolvere x,y,z + bias
     if(measurements.size() < 4) return;
 
     vector<TDoAEKF::Msmnt> input_data;

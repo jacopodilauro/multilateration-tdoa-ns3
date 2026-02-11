@@ -6,7 +6,7 @@ import sys
 
 def main():
     filename = 'tdma_security_log.csv'
-    print(f"--- Visualizzatore Multi-Drone Avanzato (Comparativo + Errori 2D) ---")
+    print(f"--- Visualizzatore Sciame (Solo Visione Globale e Dettagli) ---")
     
     try:
         df = pd.read_csv(filename)
@@ -34,6 +34,9 @@ def main():
         print("Nessun dato trovato per questo target.")
         return
 
+    # ---------------------------------------------------------
+    # 1. VISIONE GLOBALE (Tutti i droni insieme)
+    # ---------------------------------------------------------
     fig_global = plt.figure(figsize=(10, 8))
     fig_global.canvas.manager.set_window_title('1. Visione Globale Sciame')
     ax_global = fig_global.add_subplot(111, projection='3d')
@@ -46,13 +49,19 @@ def main():
         if traj.empty: continue
         c = colors[i]
         ax_global.plot(traj['true_x'], traj['true_y'], traj['true_z'], color=c, label=f'D{drone_id}')
+        
+        # Segna inizio e fine
         start = traj.iloc[0]; end = traj.iloc[-1]
         ax_global.scatter(start['true_x'], start['true_y'], start['true_z'], color=c, marker='o', facecolors='none')
         ax_global.scatter(end['true_x'], end['true_y'], end['true_z'], color=c, marker='s')
         ax_global.text(end['true_x'], end['true_y'], end['true_z'], f"D{drone_id}", color='black')
 
-    ax_global.legend(); ax_global.set_xlabel('X'); ax_global.set_ylabel('Y'); ax_global.set_zlabel('Z')
+    ax_global.legend()
+    ax_global.set_xlabel('X')
+    ax_global.set_ylabel('Y')
+    ax_global.set_zlabel('Z')
     
+    # Scaling assi per mantenere le proporzioni
     all_x = df['true_x']; all_y = df['true_y']; all_z = df['true_z']
     mid_x = (all_x.max()+all_x.min())/2; mid_y = (all_y.max()+all_y.min())/2; mid_z = (all_z.max()+all_z.min())/2
     max_range = max(all_x.max()-all_x.min(), all_y.max()-all_y.min(), all_z.max()-all_z.min()) / 2
@@ -63,6 +72,9 @@ def main():
     observer_ids = sorted(df['observer_id'].unique())
     num_obs = len(observer_ids)
     
+    # ---------------------------------------------------------
+    # 2. DETTAGLIO TARGET (Cosa vede ogni singolo drone)
+    # ---------------------------------------------------------
     if num_obs > 0:
         cols = 3; rows = (num_obs + cols - 1) // cols
         fig_detail = plt.figure(figsize=(18, 5 * rows))
@@ -81,6 +93,7 @@ def main():
             ax.plot(data['est_x'], data['est_y'], data['est_z'], color='blue', linewidth=2, label='Stima')
             ax.plot(data['true_x'], data['true_y'], data['true_z'], color='green', alpha=0.3, label='Vero')
             
+            # Linee di errore visivo
             step = max(1, len(data) // 10)
             for idx in range(0, len(data), step):
                 row = data.iloc[idx]
@@ -92,56 +105,10 @@ def main():
 
         plt.tight_layout()
 
-    fig_comp = plt.figure(figsize=(12, 10))
-    fig_comp.canvas.manager.set_window_title(f'3. Analisi Comparativa Target {target_id}')
-    ax_comp = fig_comp.add_subplot(111, projection='3d')
-    ax_comp.set_title(f"Confronto Stime: Chi vede cosa del Target {target_id}?", fontsize=16)
+    # NOTA: I grafici 3 (Comparativa) e 4 (Errori 2D) sono stati rimossi 
+    # perché presenti nella nuova Dashboard unificata.
 
-    truth_traj = df_target.drop_duplicates(subset=['time'])
-    ax_comp.plot(truth_traj['true_x'], truth_traj['true_y'], truth_traj['true_z'], 
-                 color='black', linewidth=3, linestyle='-', label='REALTÀ (Ground Truth)')
-
-    if not df_target.empty:
-        sample_obs = df_target['observer_id'].iloc[0]
-        claim_traj = df_target[df_target['observer_id'] == sample_obs]
-        ax_comp.plot(claim_traj['claim_x'], claim_traj['claim_y'], claim_traj['claim_z'], 
-                     color='red', linewidth=2, linestyle='--', label='GPS DICHIARATO (Falso)')
-
-    obs_colors = plt.cm.tab10(np.linspace(0, 1, len(observer_ids)))
-
-    for i, obs_id in enumerate(observer_ids):
-        data = df_target[df_target['observer_id'] == obs_id]
-        if data.empty: continue
-        c = obs_colors[i]
-        ax_comp.plot(data['est_x'], data['est_y'], data['est_z'], 
-                     color=c, linewidth=1.5, alpha=0.8, label=f'Stima da Drone {obs_id}')
-        last = data.iloc[-1]
-        ax_comp.scatter(last['est_x'], last['est_y'], last['est_z'], color=c, s=50)
-
-    ax_comp.set_xlabel('X [m]')
-    ax_comp.set_ylabel('Y [m]')
-    ax_comp.set_zlabel('Z [m]')
-    ax_comp.legend(loc='upper right')
-
-    fig_err = plt.figure(figsize=(12, 6))
-    fig_err.canvas.manager.set_window_title(f'4. Analisi Errori 2D Target {target_id}')
-    ax_err = fig_err.add_subplot(111)
-    
-    ax_err.set_title(f"Errore di Posizione (Stima vs Ground Truth) per Target {target_id}", fontsize=14)
-    
-    for i, obs_id in enumerate(observer_ids):
-        data = df_target[df_target['observer_id'] == obs_id]
-        if data.empty: continue
-        
-        ax_err.plot(data['time'], data['estimation_error'], 
-                    label=f'Errore Drone {obs_id}', linewidth=1.5, alpha=0.9)
-
-    ax_err.set_xlabel('Tempo [s]', fontsize=12)
-    ax_err.set_ylabel('Errore Euclideo [m]', fontsize=12)
-    ax_err.grid(True, linestyle='--', alpha=0.7)
-    ax_err.legend(loc='upper left')
-
-    print("Mostro i grafici... (Controlla le 4 finestre aperte)")
+    print("Mostro i grafici... (Dovrebbero aprirsi 2 finestre)")
     plt.show()
 
 if __name__ == "__main__":

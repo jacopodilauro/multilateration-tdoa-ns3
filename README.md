@@ -11,50 +11,10 @@
 ---
 
 ## Overview
+This project implements in **ns-3** a swarm of drones that uses **Ultra-Wideband (UWB)** technology for mutual localization.
+The goal is security: by comparing the GPS position declared by each drone with the physical TDoA measurement, the system is able to isolate compromised nodes that transmit false coordinates.
 
-This project implements a **Distributed Extended Kalman Filter (EKF)** framework within **ns-3** to simulate autonomous drone swarms utilizing **Ultra-Wideband (UWB)** technology. It focuses on **Time Difference of Arrival (TDoA)** multilateration to estimate relative positions without relying solely on GPS.
-
-Crucially, it includes a **Cyber-Physical Security Layer** designed to detect **GPS Spoofing attacks**. By cross-referencing claimed GPS positions with physics-based TDoA ranging data, the system identifies anomalies and triggers alarms when a drone's reported position contradicts the UWB measurements.
-
-### Key Capabilities
-* **Physics-Based UWB Channel**: Realistic propagation modeling including Path Loss, Shadowing, and LOS/NLOS stochastic determination.
-* **Distributed Estimation**: Each drone runs an independent EKF bank to track neighbors (Position $x,y,z$ + Clock Bias).
-* **Clock Synchronization**: Implements a Master Anchor synchronization scheme to mitigate hardware clock drift.
-* **Security & Anomaly Detection**: Real-time detection of malicious nodes broadcasting false GPS coordinates.
-
----
-
-## Simulation Results
-
-### 1. 3D Trajectory Reconstruction vs. Attack
-The system tracks the true trajectory of the target. When a **GPS Spoofing attack** occurs (Red dashed line), the EKF estimates (Blue/colored lines) maintain the physics-based trajectory, revealing the discrepancy.
-
-<p align="center">
-  <img src="images/visione_tuttidroni_sovrapposti.png" alt="Trajectory Reconstruction" width="60%">
-</p>
-
-### 2. Security Alarm System
-The plot below demonstrates the **Anomaly Detection** mechanism. 
-* **Top:** The estimation error remains low during normal operations.
-* **Bottom:** When the attack starts (approx. t=200s), the **Discrepancy (Residual)** between the claimed GPS and the TDoA estimate spikes, triggering the **ALARM ACTIVE** state (Red Zone).
-
-<p align="center">
-  <img src="images/grafico_spoofing_real.png" alt="Alarm and Error Analysis" width="60%">
-</p>
-
----
-
-## Technical Architecture
-
-### The UWB Channel Model
-Custom `UWBChannel` class simulating environmental effects based on IEEE 802.15.4a standards:
-* **LOS Probability**: $P_{LOS} = \exp(-d / \gamma)$ based on environment (Indoor/Outdoor).
-* **Ranging Error**: Gaussian noise for LOS, plus Biased Noise for NLOS conditions.
-
-### Extended Kalman Filter (EKF) State
-Each drone maintains a state vector $\mathbf{x}$ for every neighbor:
-$$\mathbf{x} = [x, y, z, v_x, v_y, v_z, \delta t]^T$$
-Where $\delta t$ represents the clock bias relative to the observer.
+The heart of the communication is managed via a **TDMA Round Robin** protocol, which guarantees order and determinism in the exchange of ranging messages and an **Extended Kalman Filter (EKF)** for the misurement.
 
 ---
 
@@ -98,8 +58,9 @@ To build and run this simulation, ensure you have the following installed:
 5.  **Visualize Results**:
     Use the provided Python script to generate the 3D plots and error analysis:
     ```bash
-    python3 scratch/plot_tdoa.py
-    python3 scratch/plot_old.py
+    ~/ns-3.46.1$ python3 scratch/multilateration-tdoa-ns3/plot_tdoa.py
+    ~/ns-3.46.1$ python3 scratch/multilateration-tdoa-ns3/plot_old.py
+    ~/ns-3.46.1$ python3 scratch/multilateration-tdoa-ns3/test_swarm_voting
     ```
 
 ---

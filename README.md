@@ -65,7 +65,7 @@ To build and run this simulation, ensure you have the following installed:
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
